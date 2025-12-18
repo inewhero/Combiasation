@@ -1,0 +1,112 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { surveyData } from './data/questions';
+import LandingPage from './components/LandingPage.vue';
+import ConsentPage from './components/ConsentPage.vue';
+import QuestionnairePage from './components/QuestionnairePage.vue';
+import EndPage from './components/EndPage.vue';
+import { v4 as uuidv4 } from 'uuid';
+
+const currentStep = ref('landing'); // landing, consent, questionnaire, end, declined
+const language = ref('zh'); // zh, en
+const userUUID = ref('');
+
+const content = computed(() => surveyData[language.value]);
+
+onMounted(() => {
+  // Check if UUID exists in localStorage
+  let storedUUID = localStorage.getItem('survey_uuid');
+  if (!storedUUID) {
+    storedUUID = uuidv4();
+    localStorage.setItem('survey_uuid', storedUUID);
+  }
+  userUUID.value = storedUUID;
+
+  // Detect browser language
+  const browserLang = navigator.language || navigator.userLanguage;
+  if (browserLang.toLowerCase().startsWith('en')) {
+    language.value = 'en';
+  }
+});
+
+const setLanguage = (lang) => {
+  language.value = lang;
+};
+
+const startSurvey = () => {
+  currentStep.value = 'consent';
+};
+
+const onConsentAgree = () => {
+  currentStep.value = 'questionnaire';
+};
+
+const onConsentDisagree = () => {
+  currentStep.value = 'declined';
+};
+
+const finishSurvey = () => {
+  currentStep.value = 'end';
+};
+</script>
+
+<template>
+  <div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+      
+      <!-- Language Switcher -->
+      <div v-if="currentStep === 'landing'" class="flex justify-end p-4 bg-gray-100 border-b">
+        <button 
+          @click="setLanguage('zh')" 
+          :class="['px-3 py-1 rounded-l-md border', language === 'zh' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700']"
+        >
+          中文
+        </button>
+        <button 
+          @click="setLanguage('en')" 
+          :class="['px-3 py-1 rounded-r-md border', language === 'en' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700']"
+        >
+          English
+        </button>
+      </div>
+
+      <div class="p-6 sm:p-10">
+        <LandingPage 
+          v-if="currentStep === 'landing'" 
+          :content="content" 
+          :uuid="userUUID"
+          @start="startSurvey" 
+        />
+
+        <ConsentPage 
+          v-if="currentStep === 'consent'" 
+          :content="content" 
+          @agree="onConsentAgree"
+          @disagree="onConsentDisagree"
+        />
+        
+        <QuestionnairePage 
+          v-if="currentStep === 'questionnaire'" 
+          :content="content" 
+          :uuid="userUUID"
+          @finish="finishSurvey" 
+        />
+        
+        <EndPage 
+          v-if="currentStep === 'end'" 
+          :content="content" 
+          :uuid="userUUID" 
+        />
+
+        <div v-if="currentStep === 'declined'" class="text-center py-10">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">
+            {{ language === 'zh' ? '您已选择退出研究。' : 'You have chosen to withdraw from the study.' }}
+          </h2>
+          <p class="text-gray-600">
+            {{ language === 'zh' ? '感谢您的关注。您可以关闭此页面。' : 'Thank you for your interest. You may close this page.' }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
