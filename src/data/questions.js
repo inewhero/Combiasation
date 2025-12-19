@@ -25,7 +25,7 @@ export const surveyData = {
     endPage: {
       paymentInstruction: "请扫描下方二维码或点击链接进入打款平台，填写您的唯一ID（UUID）并等待人工核查。核查通过后将发放被试费。",
       paymentLinkText: "点击此处进入打款平台",
-      paymentLink: "https://example.com" // Placeholder
+      paymentLink: "https://www.wenjuan.com/s/UZBZJvAzEtc/"
     },
     personalInfo: [
       {
@@ -218,7 +218,7 @@ export const surveyData = {
     endPage: {
       paymentInstruction: "Please scan the QR code below or click the link to enter the payment platform. Enter your Unique ID (UUID) and wait for manual verification. Payment will be issued after verification.",
       paymentLinkText: "Click here to enter payment platform",
-      paymentLink: "https://example.com" // Placeholder
+      paymentLink: "https://www.wenjuan.com/s/NJj63ma/" // Placeholder
     }
   }
 };

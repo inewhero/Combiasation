@@ -1,6 +1,6 @@
 <script setup>
 import qrZh from '../data/qr_zh.png';
-import qrEn from '../data/qr_en.jpg';
+import qrEn from '../data/qr_en.png';
 
 defineProps({
   content: Object,
