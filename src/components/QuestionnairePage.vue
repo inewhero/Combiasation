@@ -111,7 +111,7 @@ const validateCurrent = () => {
     
     // Check if date is valid (e.g. Feb 31 -> Mar 3)
     if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) {
-      error.value = props.content.title === "G20国家相似度调查" ? "日期无效" : "Invalid date";
+      error.value = props.content.locale === 'zh' ? "日期无效" : "Invalid date";
       return false;
     }
     
@@ -119,7 +119,7 @@ const validateCurrent = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     if (date > today) {
-      error.value = props.content.title === "G20国家相似度调查" ? "日期不能在未来" : "Date cannot be in the future";
+      error.value = props.content.locale === 'zh' ? "日期不能在未来" : "Date cannot be in the future";
       return false;
     }
   }
@@ -138,7 +138,7 @@ const nextQuestion = () => {
 
   if (!validateCurrent()) {
     if (!error.value) {
-      error.value = props.content.title === "G20国家相似度调查" ? "请回答此问题" : "Please answer this question";
+      error.value = props.content.locale === 'zh' ? "请回答此问题" : "Please answer this question";
     }
     return;
   }
@@ -151,7 +151,7 @@ const nextQuestion = () => {
 
 const submitSurvey = async () => {
   if (!validateCurrent()) {
-    error.value = props.content.title === "G20国家相似度调查" ? "请回答此问题" : "Please answer this question";
+    error.value = props.content.locale === 'zh' ? "请回答此问题" : "Please answer this question";
     return;
   }
   
@@ -167,7 +167,7 @@ const submitSurvey = async () => {
       answers: answers.value,
       timestamp: serverTimestamp(),
       userAgent: navigator.userAgent,
-      language: props.content.title === "G20国家相似度调查" ? 'zh' : 'en',
+      language: props.content.locale,
       duration: Math.round((Date.now() - startTime.value) / 1000)
     };
 
@@ -366,7 +366,7 @@ const submitSurvey = async () => {
           :disabled="submitting"
           class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50"
         >
-          {{ submitting ? (content.title === "G20国家相似度调查" ? '提交中...' : 'Submitting...') : (content.buttons?.submit || 'Submit') }}
+          {{ submitting ? (content.locale === 'zh' ? '提交中...' : 'Submitting...') : (content.buttons?.submit || 'Submit') }}
         </button>
       </div>
     </div>

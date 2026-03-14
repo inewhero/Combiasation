@@ -1,6 +1,6 @@
-# G20 Similarity Survey App
+# Country Similarity Survey App
 
-This is a Vue.js 3 + Vite application for conducting the G20 Country Similarity Survey. It uses Firebase for backend services (Firestore) and is designed to be deployed on GitHub Pages.
+This is a Vue.js 3 + Vite application for conducting a Country Similarity Survey. It uses Firebase for backend services (Firestore) and is designed to be deployed on GitHub Pages.
 
 ## Project Setup
 

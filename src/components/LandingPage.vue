@@ -28,7 +28,7 @@ onMounted(async () => {
 
     if (!querySnapshot.empty) {
       canStart.value = false;
-      errorMessage.value = props.content.title === "G20国家相似度调查" 
+      errorMessage.value = props.content.locale === 'zh'
         ? "您所在的IP地址已经提交过问卷，感谢您的参与。" 
         : "A submission has already been received from your IP address. Thank you for your participation.";
     } else {
@@ -81,7 +81,7 @@ const handleStart = () => {
         @click="handleStart"
         class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out"
       >
-        {{ content.title === "G20国家相似度调查" ? "开始答题" : "Start Survey" }}
+        {{ content.startButton || (content.locale === 'zh' ? "开始答题" : "Start Survey") }}
       </button>
     </div>
     
