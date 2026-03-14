@@ -13,6 +13,19 @@ const userUUID = ref('');
 
 const content = computed(() => surveyData[language.value]);
 
+const getDraftStorageKey = (uuid, lang) => `survey_draft_${uuid || 'anonymous'}_${lang || 'zh'}`;
+
+const hasLocalDraft = (uuid, lang) => {
+  const raw = localStorage.getItem(getDraftStorageKey(uuid, lang));
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw);
+    return !!parsed && typeof parsed === 'object' && !!parsed.answers;
+  } catch {
+    return false;
+  }
+};
+
 const getPathSegments = () => window.location.pathname.split('/').filter(Boolean);
 
 const getLanguageFromPath = () => {
@@ -56,6 +69,11 @@ onMounted(() => {
     const detectedLanguage = browserLang.toLowerCase().startsWith('en') ? 'en' : 'zh';
     language.value = detectedLanguage;
     history.replaceState({}, '', getLocalizedPath(detectedLanguage));
+  }
+
+  // Resume directly to questionnaire if there is a local draft for this UUID+locale.
+  if (hasLocalDraft(userUUID.value, language.value)) {
+    currentStep.value = 'questionnaire';
   }
 
   window.addEventListener('popstate', applyLanguageFromPath);
