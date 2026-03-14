@@ -269,9 +269,9 @@ const submitSurvey = async () => {
   } catch (e) {
     console.error("Error submitting:", e);
     if (e?.code === 'permission-denied') {
-      error.value = props.content.locale === 'zh'
-        ? "该唯一ID已提交过问卷，无法重复提交。"
-        : "This UUID has already submitted the survey and cannot submit again.";
+      clearDraft();
+      emit('finish', { duplicate: true });
+      return;
     } else {
       error.value = "Submission failed. Please try again.";
     }

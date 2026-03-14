@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 const currentStep = ref('landing'); // landing, consent, questionnaire, end, declined
 const language = ref('zh'); // zh, en
 const userUUID = ref('');
+const submissionResult = ref({ duplicate: false });
 
 const content = computed(() => surveyData[language.value]);
 
@@ -90,10 +91,12 @@ const setLanguage = (lang) => {
 };
 
 const startSurvey = () => {
+  submissionResult.value = { duplicate: false };
   currentStep.value = 'consent';
 };
 
 const onConsentAgree = () => {
+  submissionResult.value = { duplicate: false };
   currentStep.value = 'questionnaire';
 };
 
@@ -101,7 +104,10 @@ const onConsentDisagree = () => {
   currentStep.value = 'declined';
 };
 
-const finishSurvey = () => {
+const finishSurvey = (result = {}) => {
+  submissionResult.value = {
+    duplicate: !!result.duplicate,
+  };
   currentStep.value = 'end';
 };
 </script>
@@ -151,7 +157,8 @@ const finishSurvey = () => {
         <EndPage 
           v-if="currentStep === 'end'" 
           :content="content" 
-          :uuid="userUUID" 
+          :uuid="userUUID"
+          :duplicate-submission="submissionResult.duplicate"
         />
 
         <div v-if="currentStep === 'declined'" class="text-center py-10">

@@ -4,7 +4,8 @@ import qrEn from '../data/qr_en.png';
 
 defineProps({
   content: Object,
-  uuid: String
+  uuid: String,
+  duplicateSubmission: Boolean
 });
 </script>
 
@@ -17,14 +18,20 @@ defineProps({
     </div>
     
     <h2 class="text-2xl font-bold text-gray-900">
-      {{ content.endPage?.thankYou || (content.locale === 'zh' ? "感谢您的参与！" : "Thank You!") }}
+      {{ duplicateSubmission
+        ? (content.locale === 'zh' ? "检测到重复作答" : "Duplicate Submission Detected")
+        : (content.endPage?.thankYou || (content.locale === 'zh' ? "感谢您的参与！" : "Thank You!")) }}
     </h2>
     
     <p class="text-gray-600">
-      {{ content.endPage?.submitted || (content.locale === 'zh' ? "您的回答已成功提交。" : "Your response has been successfully submitted.") }}
+      {{ duplicateSubmission
+        ? (content.locale === 'zh'
+          ? "由于该唯一ID已提交过问卷，本次作答被判定为重复作答，无法领取被试报酬。"
+          : "This UUID has already submitted the survey. This attempt is treated as a duplicate and is not eligible for payment.")
+        : (content.endPage?.submitted || (content.locale === 'zh' ? "您的回答已成功提交。" : "Your response has been successfully submitted.")) }}
     </p>
 
-    <div class="bg-gray-50 p-4 rounded-md border border-gray-200 inline-block text-left">
+    <div v-if="!duplicateSubmission" class="bg-gray-50 p-4 rounded-md border border-gray-200 inline-block text-left">
       <p class="text-sm text-gray-500 mb-1">
         {{ content.endPage?.uuidLabel || (content.locale === 'zh' ? "您的唯一ID (请保存以便领取报酬):" : "Your Unique ID (Please save for reward):") }}
       </p>
@@ -34,7 +41,7 @@ defineProps({
     </div>
 
     <!-- Payment Section -->
-    <div v-if="content.endPage" class="mt-8 space-y-4 max-w-md mx-auto">
+    <div v-if="content.endPage && !duplicateSubmission" class="mt-8 space-y-4 max-w-md mx-auto">
       <p class="text-gray-700">{{ content.endPage.paymentInstruction }}</p>
       
       <div class="flex justify-center">
