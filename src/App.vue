@@ -11,6 +11,7 @@ const currentStep = ref('landing'); // landing, consent, questionnaire, end, dec
 const language = ref('zh'); // zh, en
 const userUUID = ref('');
 const submissionResult = ref({ duplicate: false });
+const hasDraftForCurrentLanguage = ref(false);
 
 const content = computed(() => surveyData[language.value]);
 
@@ -25,6 +26,14 @@ const hasLocalDraft = (uuid, lang) => {
   } catch {
     return false;
   }
+};
+
+const clearLocalDraft = (uuid, lang) => {
+  localStorage.removeItem(getDraftStorageKey(uuid, lang));
+};
+
+const refreshDraftAvailability = () => {
+  hasDraftForCurrentLanguage.value = hasLocalDraft(userUUID.value, language.value);
 };
 
 const getPathSegments = () => window.location.pathname.split('/').filter(Boolean);
@@ -50,6 +59,7 @@ const applyLanguageFromPath = () => {
   const pathLanguage = getLanguageFromPath();
   if (pathLanguage) {
     language.value = pathLanguage;
+    refreshDraftAvailability();
     return true;
   }
   return false;
@@ -72,10 +82,7 @@ onMounted(() => {
     history.replaceState({}, '', getLocalizedPath(detectedLanguage));
   }
 
-  // Resume directly to questionnaire if there is a local draft for this UUID+locale.
-  if (hasLocalDraft(userUUID.value, language.value)) {
-    currentStep.value = 'questionnaire';
-  }
+  refreshDraftAvailability();
 
   window.addEventListener('popstate', applyLanguageFromPath);
 });
@@ -87,12 +94,25 @@ onUnmounted(() => {
 const setLanguage = (lang) => {
   if (lang === language.value) return;
   language.value = lang;
+  refreshDraftAvailability();
   history.pushState({}, '', getLocalizedPath(lang));
 };
 
 const startSurvey = () => {
   submissionResult.value = { duplicate: false };
   currentStep.value = 'consent';
+};
+
+const continueFromDraft = () => {
+  submissionResult.value = { duplicate: false };
+  currentStep.value = 'questionnaire';
+};
+
+const restartFromDraft = () => {
+  clearLocalDraft(userUUID.value, language.value);
+  hasDraftForCurrentLanguage.value = false;
+  submissionResult.value = { duplicate: false };
+  currentStep.value = 'questionnaire';
 };
 
 const onConsentAgree = () => {
@@ -133,6 +153,31 @@ const finishSurvey = (result = {}) => {
       </div>
 
       <div class="p-6 sm:p-10">
+        <div
+          v-if="currentStep === 'landing' && hasDraftForCurrentLanguage"
+          class="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4"
+        >
+          <p class="text-sm text-amber-900 mb-3">
+            {{ language === 'zh'
+              ? '检测到您有未完成的作答记录，您可以选择继续作答或重做。'
+              : 'An unfinished response draft was found. You can continue or restart.' }}
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              @click="continueFromDraft"
+              class="px-4 py-2 rounded-md bg-amber-600 text-white hover:bg-amber-700"
+            >
+              {{ language === 'zh' ? '继续作答' : 'Continue' }}
+            </button>
+            <button
+              @click="restartFromDraft"
+              class="px-4 py-2 rounded-md bg-white border border-amber-300 text-amber-900 hover:bg-amber-100"
+            >
+              {{ language === 'zh' ? '重做' : 'Restart' }}
+            </button>
+          </div>
+        </div>
+
         <LandingPage 
           v-if="currentStep === 'landing'" 
           :content="content" 
