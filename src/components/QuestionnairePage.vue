@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"; 
 import { db } from '../firebaseConfig';
 
@@ -16,6 +16,11 @@ const answers = ref({});
 const submitting = ref(false);
 const error = ref('');
 const startTime = ref(0);
+const isHydratingDraft = ref(true);
+
+const draftStorageKey = computed(
+  () => `survey_draft_${props.uuid || 'anonymous'}_${props.content.locale || 'zh'}`
+);
 
 // Deterministic PRNG helpers so each UUID gets stable question sampling.
 const hashStringToSeed = (text) => {
@@ -43,6 +48,54 @@ const shuffleArray = (array, randomFn = Math.random) => {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
+};
+
+const saveDraft = () => {
+  if (!questions.value.length || isHydratingDraft.value) return;
+  const draft = {
+    currentQuestionIndex: currentQuestionIndex.value,
+    answers: answers.value,
+    startTime: startTime.value,
+    updatedAt: Date.now(),
+  };
+  localStorage.setItem(draftStorageKey.value, JSON.stringify(draft));
+};
+
+const clearDraft = () => {
+  localStorage.removeItem(draftStorageKey.value);
+};
+
+const loadDraft = () => {
+  const raw = localStorage.getItem(draftStorageKey.value);
+  if (!raw) return;
+
+  try {
+    const draft = JSON.parse(raw);
+    if (!draft || typeof draft !== 'object') return;
+
+    if (typeof draft.startTime === 'number' && draft.startTime > 0) {
+      startTime.value = draft.startTime;
+    }
+
+    const validQuestionIds = new Set(questions.value.map((q) => q.id));
+    const restoredAnswers = { ...answers.value };
+
+    Object.entries(draft.answers || {}).forEach(([questionId, value]) => {
+      if (validQuestionIds.has(questionId)) {
+        restoredAnswers[questionId] = value;
+      }
+    });
+
+    answers.value = restoredAnswers;
+
+    const maxIndex = Math.max(questions.value.length - 1, 0);
+    const restoredIndex = Number(draft.currentQuestionIndex);
+    if (Number.isInteger(restoredIndex)) {
+      currentQuestionIndex.value = Math.min(Math.max(restoredIndex, 0), maxIndex);
+    }
+  } catch (e) {
+    console.warn('Failed to restore local draft:', e);
+  }
 };
 
 onMounted(() => {
@@ -109,7 +162,14 @@ onMounted(() => {
       answers.value[q.id] = '2000-01-01';
     }
   });
+
+  loadDraft();
+  isHydratingDraft.value = false;
+  saveDraft();
 });
+
+watch(currentQuestionIndex, saveDraft);
+watch(answers, saveDraft, { deep: true });
 
 const currentQuestion = computed(() => questions.value[currentQuestionIndex.value]);
 const progress = computed(() => {
@@ -163,6 +223,7 @@ const nextQuestion = () => {
   
   // Developer Mode: Check for 1925-01-01
   if (currentQuestion.value.type === 'date' && answers.value[currentQuestion.value.id] === '1925-01-01') {
+    clearDraft();
     emit('finish');
     return;
   }
@@ -203,6 +264,7 @@ const submitSurvey = async () => {
     };
 
     await addDoc(collection(db, "surveyResponses"), submissionData);
+    clearDraft();
     emit('finish');
   } catch (e) {
     console.error("Error submitting:", e);
