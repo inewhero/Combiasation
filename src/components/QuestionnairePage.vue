@@ -76,13 +76,13 @@ onMounted(() => {
       category: 'main'
     });
 
-    // 50% chance for Follow-up Multiple Choice
-    if (randomFn() < 0.5) {
+    // 10% chance for Follow-up Multiple Choice
+    if (randomFn() < 0.1) {
       qList.push({
         id: `followup_${index}`,
         type: 'multiple_choice',
         label: props.content.multipleChoicePrompt.replace('{pair}', pair),
-        options: props.content.multipleChoiceOptions,
+        options: shuffleArray([...props.content.multipleChoiceOptions], randomFn),
         required: true, // Assuming required as it's a question
         category: 'main'
       });
