@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; 
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 
 const props = defineProps({
@@ -263,12 +263,18 @@ const submitSurvey = async () => {
       duration: Math.round((Date.now() - startTime.value) / 1000)
     };
 
-    await addDoc(collection(db, "surveyResponses"), submissionData);
+    await setDoc(doc(db, "surveyResponses", props.uuid), submissionData);
     clearDraft();
     emit('finish');
   } catch (e) {
     console.error("Error submitting:", e);
-    error.value = "Submission failed. Please try again.";
+    if (e?.code === 'permission-denied') {
+      error.value = props.content.locale === 'zh'
+        ? "该唯一ID已提交过问卷，无法重复提交。"
+        : "This UUID has already submitted the survey and cannot submit again.";
+    } else {
+      error.value = "Submission failed. Please try again.";
+    }
   } finally {
     submitting.value = false;
   }

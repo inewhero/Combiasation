@@ -1,9 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /surveyResponses/{document=**} {
-      // Allow creation only
-      allow create: if true;
+    match /surveyResponses/{responseId} {
+      // Allow creation only when document ID matches payload UUID.
+      allow create: if request.resource.data.uuid == responseId;
       
       // Deny read, update, delete for everyone (Admin uses Console)
       allow read, update, delete: if false;
