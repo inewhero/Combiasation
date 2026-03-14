@@ -147,6 +147,14 @@ const validateCurrent = () => {
     }
   }
 
+  if (q.type === 'text_input_long') {
+    const textLength = String(val || '').trim().length;
+    if (textLength <= 20) {
+      error.value = props.content.locale === 'zh' ? "请至少填写21个字" : "Please provide at least 21 characters";
+      return false;
+    }
+  }
+
   return true;
 };
 

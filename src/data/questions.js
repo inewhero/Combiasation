@@ -97,7 +97,7 @@ export const surveyData = {
         required: true
       }
     ],
-    sliderPrompt: "请根据你的主观印象为以下两个国家的相似度进行0%到100%之间的评分：",
+    sliderPrompt: "请根据您的主观印象为以下两个国家的相似度进行0%到100%之间的评分：",
     sliderPairs: buildPairs(countriesZh, " 和 "),
     multipleChoicePrompt: "您对 {pair} 相似性的评分主要基于以下哪些因素来判断？",
     multipleChoiceOptions: [

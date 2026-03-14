@@ -23,15 +23,16 @@ onMounted(async () => {
     const ipData = await ipResponse.json();
     ipAddress.value = ipData.ip;
 
-    // 2. Check Firestore for existing submission with this IP
-    const q = query(collection(db, "surveyResponses"), where("ip", "==", ipAddress.value));
-    const querySnapshot = await getDocs(q);
+    // 2. Check Firestore for existing submission with this IP or UUID
+    const ipQuery = query(collection(db, "surveyResponses"), where("ip", "==", ipAddress.value));
+    const uuidQuery = query(collection(db, "surveyResponses"), where("uuid", "==", props.uuid));
+    const [ipSnapshot, uuidSnapshot] = await Promise.all([getDocs(ipQuery), getDocs(uuidQuery)]);
 
-    if (!querySnapshot.empty) {
+    if (!ipSnapshot.empty || !uuidSnapshot.empty) {
       canStart.value = false;
       errorMessage.value = props.content.locale === 'zh'
-        ? "您所在的IP地址已经提交过问卷，感谢您的参与。" 
-        : "A submission has already been received from your IP address. Thank you for your participation.";
+        ? "检测到您的IP地址或唯一ID已提交过问卷，感谢您的参与。"
+        : "A submission has already been received from your IP address or UUID. Thank you for your participation.";
     } else {
       canStart.value = true;
     }
