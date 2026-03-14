@@ -10,12 +10,12 @@ const buildPairs = (countries, joiner) => {
 
 const countriesZh = [
   "阿根廷", "澳大利亚", "巴西", "加拿大", "中国", "法国", "德国", "印度", "印度尼西亚", "意大利",
-  "日本", "墨西哥", "俄罗斯", "沙特阿拉伯", "南非", "韩国", "土耳其", "英国", "美国", "乌克兰", "以色列", "伊拉克", "伊朗"
+  "日本", "墨西哥", "俄罗斯", "沙特阿拉伯", "南非", "韩国", "土耳其", "英国", "美国", "乌克兰", "以色列", "伊拉克", "伊朗", "欧洲联盟", "非洲联盟"
 ]
 
 const countriesEn = [
   "Argentina", "Australia", "Brazil", "Canada", "China", "France", "Germany", "India", "Indonesia", "Italy",
-  "Japan", "Mexico", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Turkey", "the United Kingdom", "the United States", "Ukraine", "Israel", "Iraq", "Iran"
+  "Japan", "Mexico", "Russia", "Saudi Arabia", "South Africa", "South Korea", "Turkey", "the United Kingdom", "the United States", "Ukraine", "Israel", "Iraq", "Iran", "the European Union", "the African Union"
 ]
 
 export const surveyData = {
@@ -29,6 +29,16 @@ export const surveyData = {
       disagree: "不同意"
     },
     info: `本研究将邀请您评估以下国家之间的相似度：${countriesZh.join("、")}。`,
+    unionMembers: {
+      euTitle: "欧洲联盟成员国",
+      auTitle: "非洲联盟成员国",
+      euMembers: [
+        "奥地利", "比利时", "保加利亚", "塞浦路斯", "捷克", "克罗地亚", "丹麦", "爱沙尼亚", "芬兰", "法国", "德国", "希腊", "匈牙利", "爱尔兰", "意大利", "拉脱维亚", "立陶宛", "卢森堡", "马耳他", "荷兰", "波兰", "葡萄牙", "罗马尼亚", "斯洛伐克", "斯洛文尼亚", "西班牙", "瑞典"
+      ],
+      auMembers: [
+        "阿尔及利亚", "安哥拉", "贝宁", "博茨瓦纳", "布基纳法索", "布隆迪", "佛得角", "喀麦隆", "中非共和国", "乍得", "科摩罗", "刚果（布）", "刚果（金）", "科特迪瓦", "吉布提", "埃及", "赤道几内亚", "厄立特里亚", "斯威士兰", "埃塞俄比亚", "加蓬", "冈比亚", "加纳", "几内亚", "几内亚比绍", "肯尼亚", "莱索托", "利比里亚", "利比亚", "马达加斯加", "马拉维", "马里", "毛里塔尼亚", "毛里求斯", "摩洛哥", "莫桑比克", "纳米比亚", "尼日尔", "尼日利亚", "卢旺达", "圣多美和普林西比", "塞内加尔", "塞舌尔", "塞拉利昂", "索马里", "南非", "南苏丹", "苏丹", "坦桑尼亚", "多哥", "突尼斯", "乌干达", "赞比亚", "津巴布韦"
+      ]
+    },
     socialStatusInstruction: "想象这个梯子代表了人们在社会中的地位。梯子顶端的人是那些情况最好的人，他们拥有最多的金钱、最高的教育程度和最好的工作。梯子底端的人是那些情况最差的人，他们拥有的金钱最少、教育程度最低，工作最差或没有工作。\n您认为您自己处于哪个位置？",
     socialStatusLabels: {
       best: "情况最好",
@@ -105,6 +115,16 @@ export const surveyData = {
       disagree: "Disagree"
     },
     info: `In this study, you will evaluate perceived similarity among the following countries: ${countriesEn.join(", ")}.`,
+    unionMembers: {
+      euTitle: "European Union Member States",
+      auTitle: "African Union Member States",
+      euMembers: [
+        "Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden"
+      ],
+      auMembers: [
+        "Algeria", "Angola", "Benin", "Botswana", "Burkina Faso", "Burundi", "Cabo Verde", "Cameroon", "Central African Republic", "Chad", "Comoros", "Republic of the Congo", "Democratic Republic of the Congo", "Cote d'Ivoire", "Djibouti", "Egypt", "Equatorial Guinea", "Eritrea", "Eswatini", "Ethiopia", "Gabon", "The Gambia", "Ghana", "Guinea", "Guinea-Bissau", "Kenya", "Lesotho", "Liberia", "Libya", "Madagascar", "Malawi", "Mali", "Mauritania", "Mauritius", "Morocco", "Mozambique", "Namibia", "Niger", "Nigeria", "Rwanda", "Sao Tome and Principe", "Senegal", "Seychelles", "Sierra Leone", "Somalia", "South Africa", "South Sudan", "Sudan", "Tanzania", "Togo", "Tunisia", "Uganda", "Zambia", "Zimbabwe"
+      ]
+    },
     socialStatusInstruction: "Think of this ladder as representing where people stand in our society. At the top are people who are best off, with the most money, most education, and best jobs. At the bottom are people who are worst off, with the least money, least education, and worst jobs or no job.\nWhere would you place yourself on this ladder?",
     socialStatusLabels: {
       best: "Best off",

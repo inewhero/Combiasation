@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from '../firebaseConfig';
 
@@ -14,6 +14,7 @@ const loading = ref(true);
 const canStart = ref(false);
 const errorMessage = ref('');
 const ipAddress = ref('');
+const memberSeparator = computed(() => (props.content.locale === 'zh' ? '、' : ', '));
 
 onMounted(async () => {
   try {
@@ -64,6 +65,17 @@ const handleStart = () => {
 
     <div class="bg-blue-50 p-4 rounded-md border border-blue-100 text-sm text-blue-800 whitespace-pre-line">
       {{ content.info }}
+    </div>
+
+    <div v-if="content.unionMembers" class="grid gap-4 sm:grid-cols-2">
+      <div class="bg-white p-4 rounded-md border border-gray-200">
+        <h3 class="font-semibold text-gray-800 mb-2">{{ content.unionMembers.euTitle }}</h3>
+        <p class="text-sm text-gray-600 whitespace-pre-line">{{ content.unionMembers.euMembers.join(memberSeparator) }}</p>
+      </div>
+      <div class="bg-white p-4 rounded-md border border-gray-200">
+        <h3 class="font-semibold text-gray-800 mb-2">{{ content.unionMembers.auTitle }}</h3>
+        <p class="text-sm text-gray-600 whitespace-pre-line">{{ content.unionMembers.auMembers.join(memberSeparator) }}</p>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center py-4">
