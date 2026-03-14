@@ -12,6 +12,8 @@ const language = ref('zh'); // zh, en
 const userUUID = ref('');
 const submissionResult = ref({ duplicate: false });
 const hasDraftForCurrentLanguage = ref(false);
+const showDraftResumeModal = ref(false);
+const questionnaireSessionKey = ref(0);
 
 const content = computed(() => surveyData[language.value]);
 
@@ -34,6 +36,11 @@ const clearLocalDraft = (uuid, lang) => {
 
 const refreshDraftAvailability = () => {
   hasDraftForCurrentLanguage.value = hasLocalDraft(userUUID.value, language.value);
+};
+
+const refreshDraftPromptState = () => {
+  refreshDraftAvailability();
+  showDraftResumeModal.value = hasDraftForCurrentLanguage.value;
 };
 
 const getPathSegments = () => window.location.pathname.split('/').filter(Boolean);
@@ -59,7 +66,7 @@ const applyLanguageFromPath = () => {
   const pathLanguage = getLanguageFromPath();
   if (pathLanguage) {
     language.value = pathLanguage;
-    refreshDraftAvailability();
+    refreshDraftPromptState();
     return true;
   }
   return false;
@@ -82,7 +89,7 @@ onMounted(() => {
     history.replaceState({}, '', getLocalizedPath(detectedLanguage));
   }
 
-  refreshDraftAvailability();
+  refreshDraftPromptState();
 
   window.addEventListener('popstate', applyLanguageFromPath);
 });
@@ -94,7 +101,7 @@ onUnmounted(() => {
 const setLanguage = (lang) => {
   if (lang === language.value) return;
   language.value = lang;
-  refreshDraftAvailability();
+  refreshDraftPromptState();
   history.pushState({}, '', getLocalizedPath(lang));
 };
 
@@ -104,6 +111,7 @@ const startSurvey = () => {
 };
 
 const continueFromDraft = () => {
+  showDraftResumeModal.value = false;
   submissionResult.value = { duplicate: false };
   currentStep.value = 'questionnaire';
 };
@@ -111,6 +119,8 @@ const continueFromDraft = () => {
 const restartFromDraft = () => {
   clearLocalDraft(userUUID.value, language.value);
   hasDraftForCurrentLanguage.value = false;
+  showDraftResumeModal.value = false;
+  questionnaireSessionKey.value += 1;
   submissionResult.value = { duplicate: false };
   currentStep.value = 'questionnaire';
 };
@@ -153,31 +163,6 @@ const finishSurvey = (result = {}) => {
       </div>
 
       <div class="p-6 sm:p-10">
-        <div
-          v-if="currentStep === 'landing' && hasDraftForCurrentLanguage"
-          class="mb-6 rounded-md border border-amber-200 bg-amber-50 p-4"
-        >
-          <p class="text-sm text-amber-900 mb-3">
-            {{ language === 'zh'
-              ? '检测到您有未完成的作答记录，您可以选择继续作答或重做。'
-              : 'An unfinished response draft was found. You can continue or restart.' }}
-          </p>
-          <div class="flex flex-wrap gap-2">
-            <button
-              @click="continueFromDraft"
-              class="px-4 py-2 rounded-md bg-amber-600 text-white hover:bg-amber-700"
-            >
-              {{ language === 'zh' ? '继续作答' : 'Continue' }}
-            </button>
-            <button
-              @click="restartFromDraft"
-              class="px-4 py-2 rounded-md bg-white border border-amber-300 text-amber-900 hover:bg-amber-100"
-            >
-              {{ language === 'zh' ? '重做' : 'Restart' }}
-            </button>
-          </div>
-        </div>
-
         <LandingPage 
           v-if="currentStep === 'landing'" 
           :content="content" 
@@ -194,6 +179,7 @@ const finishSurvey = (result = {}) => {
         
         <QuestionnairePage 
           v-if="currentStep === 'questionnaire'" 
+          :key="questionnaireSessionKey"
           :content="content" 
           :uuid="userUUID"
           @finish="finishSurvey" 
@@ -213,6 +199,36 @@ const finishSurvey = (result = {}) => {
           <p class="text-gray-600">
             {{ language === 'zh' ? '感谢您的关注。您可以关闭此页面。' : 'Thank you for your interest. You may close this page.' }}
           </p>
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="showDraftResumeModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+    >
+      <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">
+          {{ language === 'zh' ? '检测到未完成作答' : 'Unfinished Draft Found' }}
+        </h3>
+        <p class="text-sm text-gray-600 mb-4">
+          {{ language === 'zh'
+            ? '检测到您有未完成的作答记录。请选择继续作答或重做。'
+            : 'An unfinished response draft was found. Please choose to continue or restart.' }}
+        </p>
+        <div class="flex justify-end gap-2">
+          <button
+            @click="restartFromDraft"
+            class="px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+          >
+            {{ language === 'zh' ? '重做' : 'Restart' }}
+          </button>
+          <button
+            @click="continueFromDraft"
+            class="px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+          >
+            {{ language === 'zh' ? '继续作答' : 'Continue' }}
+          </button>
         </div>
       </div>
     </div>
