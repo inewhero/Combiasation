@@ -104,10 +104,10 @@ Since we are using environment variables to hide your Firebase config, you need 
 This project uses path-based language URLs (`/zh` and `/en`). GitHub Pages serves static files, so refreshing a deep link would normally return 404.
 
 To solve this, the project includes:
-- `404.html`: redirects unknown paths to `index.html` while preserving route info.
+- `public/404.html`: redirects unknown paths to `index.html` while preserving route info.
 - `index.html`: restores the original path before Vue initializes.
 
-If you rename the repository or switch to a user/organization page, check the `segmentCount` value in `404.html`:
+If you rename the repository or switch to a user/organization page, check the `segmentCount` value in `public/404.html`:
 - project page (`https://username.github.io/repo/`): keep `segmentCount = 1`
 - user/org page (`https://username.github.io/`): use `segmentCount = 0`
 
@@ -118,7 +118,8 @@ If you rename the repository or switch to a user/organization page, check the `s
 
 ### Note on `vite.config.js`
 Ensure your `vite.config.js` has the correct `base` setting.
-- If your repository is at `https://github.com/user/repo`, the base should be set to `'./'` (default in this project) or `'/repo/'`.
+- For this repository (`https://inewhero.github.io/Combiasation/`), use `'/Combiasation/'`.
+- If you rename the repository to a different path, update `base` accordingly (e.g., `'/new-repo-name/'`).
 - If you are deploying to a custom domain or user page, adjust accordingly.
 
 ## Admin & Data
