@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { collection, addDoc, serverTimestamp } from "firebase/firestore"; 
 import { db } from '../firebaseConfig';
 
@@ -17,10 +17,29 @@ const submitting = ref(false);
 const error = ref('');
 const startTime = ref(0);
 
-// Helper to shuffle array
-const shuffleArray = (array) => {
+// Deterministic PRNG helpers so each UUID gets stable question sampling.
+const hashStringToSeed = (text) => {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+};
+
+const createSeededRandom = (seed) => {
+  let state = seed || 1;
+  return () => {
+    state = (state + 0x6D2B79F5) | 0;
+    let t = Math.imul(state ^ (state >>> 15), 1 | state);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+};
+
+const shuffleArray = (array, randomFn = Math.random) => {
   for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(randomFn() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
@@ -29,6 +48,8 @@ const shuffleArray = (array) => {
 onMounted(() => {
   startTime.value = Date.now();
   const qList = [];
+  const seed = hashStringToSeed(`${props.uuid || 'anonymous'}::${props.content.locale || 'zh'}`);
+  const randomFn = createSeededRandom(seed);
 
   // 1. Personal Info
   props.content.personalInfo.forEach(info => {
@@ -40,7 +61,7 @@ onMounted(() => {
 
   // 2. Sample 50% of country pairs per participant, then add random follow-up
   const allPairs = [...props.content.sliderPairs];
-  shuffleArray(allPairs);
+  shuffleArray(allPairs, randomFn);
   const sampledPairCount = Math.max(1, Math.ceil(allPairs.length * 0.5));
   const pairs = allPairs.slice(0, sampledPairCount);
 
@@ -56,7 +77,7 @@ onMounted(() => {
     });
 
     // 50% chance for Follow-up Multiple Choice
-    if (Math.random() < 0.5) {
+    if (randomFn() < 0.5) {
       qList.push({
         id: `followup_${index}`,
         type: 'multiple_choice',
