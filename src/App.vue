@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { surveyData } from './data/questions';
 import LandingPage from './components/LandingPage.vue';
 import ConsentPage from './components/ConsentPage.vue';
@@ -13,6 +13,34 @@ const userUUID = ref('');
 
 const content = computed(() => surveyData[language.value]);
 
+const getPathSegments = () => window.location.pathname.split('/').filter(Boolean);
+
+const getLanguageFromPath = () => {
+  const lastSegment = getPathSegments().at(-1);
+  return lastSegment === 'zh' || lastSegment === 'en' ? lastSegment : null;
+};
+
+const getAppBasePath = () => {
+  const segments = getPathSegments();
+  if (segments.length === 0) return '';
+  const lastSegment = segments[segments.length - 1];
+  const baseSegments = lastSegment === 'zh' || lastSegment === 'en'
+    ? segments.slice(0, -1)
+    : segments;
+  return baseSegments.length ? `/${baseSegments.join('/')}` : '';
+};
+
+const getLocalizedPath = (lang) => `${getAppBasePath()}/${lang}`.replace(/\/+/g, '/');
+
+const applyLanguageFromPath = () => {
+  const pathLanguage = getLanguageFromPath();
+  if (pathLanguage) {
+    language.value = pathLanguage;
+    return true;
+  }
+  return false;
+};
+
 onMounted(() => {
   // Check if UUID exists in localStorage
   let storedUUID = localStorage.getItem('survey_uuid');
@@ -22,15 +50,25 @@ onMounted(() => {
   }
   userUUID.value = storedUUID;
 
-  // Detect browser language
-  const browserLang = navigator.language || navigator.userLanguage;
-  if (browserLang.toLowerCase().startsWith('en')) {
-    language.value = 'en';
+  // Use /zh or /en from path first; fallback to browser detection and redirect.
+  if (!applyLanguageFromPath()) {
+    const browserLang = navigator.language || navigator.userLanguage;
+    const detectedLanguage = browserLang.toLowerCase().startsWith('en') ? 'en' : 'zh';
+    language.value = detectedLanguage;
+    history.replaceState({}, '', getLocalizedPath(detectedLanguage));
   }
+
+  window.addEventListener('popstate', applyLanguageFromPath);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('popstate', applyLanguageFromPath);
 });
 
 const setLanguage = (lang) => {
+  if (lang === language.value) return;
   language.value = lang;
+  history.pushState({}, '', getLocalizedPath(lang));
 };
 
 const startSurvey = () => {
