@@ -100,7 +100,18 @@ Since we are using environment variables to hide your Firebase config, you need 
 3. Under **Build and deployment** > **Source**, select **GitHub Actions**.
    *(Note: Since we added `.github/workflows/deploy.yml`, GitHub might detect this automatically, but it's good to verify).*
 
-### 3. Verify Deployment
+### 4. SPA Route Refresh Support
+This project uses path-based language URLs (`/zh` and `/en`). GitHub Pages serves static files, so refreshing a deep link would normally return 404.
+
+To solve this, the project includes:
+- `404.html`: redirects unknown paths to `index.html` while preserving route info.
+- `index.html`: restores the original path before Vue initializes.
+
+If you rename the repository or switch to a user/organization page, check the `segmentCount` value in `404.html`:
+- project page (`https://username.github.io/repo/`): keep `segmentCount = 1`
+- user/org page (`https://username.github.io/`): use `segmentCount = 0`
+
+### 5. Verify Deployment
 1. Click on the **Actions** tab in your repository to see the deployment progress.
 2. Once the workflow shows a green checkmark, your site is live.
 3. The URL will usually be `https://YOUR_USERNAME.github.io/YOUR_REPO_NAME/`.
