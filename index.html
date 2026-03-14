@@ -11,12 +11,15 @@
     <script>
       (function (location) {
         if (location.search[1] === '/') {
+          const pathnameBase = location.pathname.endsWith('/')
+            ? location.pathname.slice(0, -1)
+            : location.pathname;
           const decoded = location.search
             .slice(1)
             .split('&')
             .map((part) => part.replace(/~and~/g, '&'))
             .join('?');
-          window.history.replaceState(null, '', location.pathname.slice(0, -1) + decoded + location.hash);
+          window.history.replaceState(null, '', pathnameBase + decoded + location.hash);
         }
       })(window.location);
     </script>
