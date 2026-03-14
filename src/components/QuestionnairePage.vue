@@ -38,9 +38,11 @@ onMounted(() => {
     });
   });
 
-  // 2. Slider Questions + Random Follow-up
-  const pairs = [...props.content.sliderPairs];
-  shuffleArray(pairs);
+  // 2. Sample 50% of country pairs per participant, then add random follow-up
+  const allPairs = [...props.content.sliderPairs];
+  shuffleArray(allPairs);
+  const sampledPairCount = Math.max(1, Math.ceil(allPairs.length * 0.5));
+  const pairs = allPairs.slice(0, sampledPairCount);
 
   pairs.forEach((pair, index) => {
     // Slider Question
