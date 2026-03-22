@@ -222,6 +222,7 @@ const validateCurrent = () => {
 const buildPairAnswerPayload = () => {
   const pairQuestionMap = {};
   const pairResponses = [];
+  const sliderRatings = {};
 
   questions.value.forEach((q) => {
     if (q.type === 'slider' || q.type === 'multiple_choice') {
@@ -252,11 +253,19 @@ const buildPairAnswerPayload = () => {
       followupQuestionId: pairQuestionMap[followupId] ? followupId : null,
       followupFactors,
     });
+
+    sliderRatings[q.id] = {
+      pair: q.pair || null,
+      score,
+      followupQuestionId: pairQuestionMap[followupId] ? followupId : null,
+      followupFactors,
+    };
   });
 
   return {
     pairQuestionMap,
     pairResponses,
+    sliderRatings,
   };
 };
 
