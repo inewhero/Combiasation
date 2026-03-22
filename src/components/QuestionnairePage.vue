@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from '../firebaseConfig';
+import { submitToMongoPrimary } from '../submitClient';
 
 const props = defineProps({
   content: Object,
@@ -135,6 +136,7 @@ onMounted(() => {
         id: `followup_${index}`,
         type: 'multiple_choice',
         label: props.content.multipleChoicePrompt.replace('{pair}', pair),
+        pair: pair,
         options: shuffleArray([...props.content.multipleChoiceOptions], randomFn),
         required: true, // Assuming required as it's a question
         category: 'main'
@@ -218,6 +220,47 @@ const validateCurrent = () => {
   return true;
 };
 
+const buildPairAnswerPayload = () => {
+  const pairQuestionMap = {};
+  const pairResponses = [];
+
+  questions.value.forEach((q) => {
+    if (q.type === 'slider' || q.type === 'multiple_choice') {
+      pairQuestionMap[q.id] = {
+        type: q.type,
+        pair: q.pair || null,
+      };
+    }
+  });
+
+  questions.value.forEach((q) => {
+    if (q.type !== 'slider') return;
+
+    const scoreRaw = answers.value[q.id];
+    const score = scoreRaw === '' || scoreRaw === undefined || scoreRaw === null
+      ? null
+      : Number(scoreRaw);
+
+    const followupId = q.id.replace('slider_', 'followup_');
+    const followupFactors = Array.isArray(answers.value[followupId])
+      ? answers.value[followupId]
+      : [];
+
+    pairResponses.push({
+      pairQuestionId: q.id,
+      pair: q.pair || null,
+      score,
+      followupQuestionId: pairQuestionMap[followupId] ? followupId : null,
+      followupFactors,
+    });
+  });
+
+  return {
+    pairQuestionMap,
+    pairResponses,
+  };
+};
+
 const nextQuestion = () => {
   error.value = '';
   
@@ -250,22 +293,54 @@ const submitSurvey = async () => {
   submitting.value = true;
   try {
     // Get IP again for record
-    const ipResponse = await fetch('https://api.ipify.org?format=json');
-    const ipData = await ipResponse.json();
-    
-    const submissionData = {
+    let ip = '';
+    try {
+      const ipResponse = await fetch('https://api.ipify.org?format=json');
+      const ipData = await ipResponse.json();
+      ip = ipData?.ip || '';
+    } catch (ipError) {
+      console.warn('Failed to fetch IP address:', ipError);
+    }
+
+    const baseSubmissionData = {
       uuid: props.uuid,
-      ip: ipData.ip,
+      ip,
       answers: answers.value,
-      timestamp: serverTimestamp(),
+      ...buildPairAnswerPayload(),
       userAgent: navigator.userAgent,
       language: props.content.locale,
-      duration: Math.round((Date.now() - startTime.value) / 1000)
+      duration: Math.round((Date.now() - startTime.value) / 1000),
+      clientTimestamp: new Date().toISOString(),
+      submitPrimary: 'aliyun-mongodb',
+      submitBackend: 'aliyun-mongodb',
+      submitFallbackUsed: false,
     };
 
-    await setDoc(doc(db, "surveyResponses", props.uuid), submissionData);
-    clearDraft();
-    emit('finish');
+    try {
+      const mongoResult = await submitToMongoPrimary(baseSubmissionData);
+      if (mongoResult?.duplicate) {
+        clearDraft();
+        emit('finish', { duplicate: true });
+        return;
+      }
+
+      clearDraft();
+      emit('finish');
+      return;
+    } catch (mongoError) {
+      console.warn('MongoDB primary submit failed, fallback to Firebase:', mongoError);
+
+      await setDoc(doc(db, "surveyResponses", props.uuid), {
+        ...baseSubmissionData,
+        timestamp: serverTimestamp(),
+        submitBackend: 'firebase',
+        submitFallbackUsed: true,
+        mongoErrorCode: String(mongoError?.code || 'unknown'),
+      });
+
+      clearDraft();
+      emit('finish');
+    }
   } catch (e) {
     console.error("Error submitting:", e);
     if (e?.code === 'permission-denied') {
