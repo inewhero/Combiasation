@@ -14,6 +14,7 @@ const submissionResult = ref({ duplicate: false });
 const hasDraftForCurrentLanguage = ref(false);
 const showDraftResumeModal = ref(false);
 const questionnaireSessionKey = ref(0);
+const isEnglishSurveyPaused = computed(() => language.value === 'en');
 
 const content = computed(() => surveyData[language.value]);
 
@@ -163,6 +164,19 @@ const finishSurvey = (result = {}) => {
       </div>
 
       <div class="p-6 sm:p-10">
+        <div v-if="isEnglishSurveyPaused" class="text-center py-10">
+          <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            Survey Temporarily Paused
+          </h2>
+          <p class="text-gray-600 mb-2">
+            The English version of this survey is temporarily unavailable.
+          </p>
+          <p class="text-gray-600">
+            Please check back later. Thank you for your understanding.
+          </p>
+        </div>
+
+        <template v-else>
         <LandingPage 
           v-if="currentStep === 'landing'" 
           :content="content" 
@@ -200,11 +214,12 @@ const finishSurvey = (result = {}) => {
             {{ language === 'zh' ? '感谢您的关注。您可以关闭此页面。' : 'Thank you for your interest. You may close this page.' }}
           </p>
         </div>
+        </template>
       </div>
     </div>
 
     <div
-      v-if="showDraftResumeModal"
+      v-if="showDraftResumeModal && !isEnglishSurveyPaused"
       class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
     >
       <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
