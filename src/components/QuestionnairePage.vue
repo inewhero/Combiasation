@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from '../firebaseConfig';
-import { submitToMongoPrimary } from '../submitClient';
 
 const props = defineProps({
   content: Object,
@@ -311,36 +310,18 @@ const submitSurvey = async () => {
       language: props.content.locale,
       duration: Math.round((Date.now() - startTime.value) / 1000),
       clientTimestamp: new Date().toISOString(),
-      submitPrimary: 'aliyun-mongodb',
-      submitBackend: 'aliyun-mongodb',
+      submitPrimary: 'firebase',
+      submitBackend: 'firebase',
       submitFallbackUsed: false,
     };
 
-    try {
-      const mongoResult = await submitToMongoPrimary(baseSubmissionData);
-      if (mongoResult?.duplicate) {
-        clearDraft();
-        emit('finish', { duplicate: true });
-        return;
-      }
+    await setDoc(doc(db, "surveyResponses", props.uuid), {
+      ...baseSubmissionData,
+      timestamp: serverTimestamp(),
+    });
 
-      clearDraft();
-      emit('finish');
-      return;
-    } catch (mongoError) {
-      console.warn('MongoDB primary submit failed, fallback to Firebase:', mongoError);
-
-      await setDoc(doc(db, "surveyResponses", props.uuid), {
-        ...baseSubmissionData,
-        timestamp: serverTimestamp(),
-        submitBackend: 'firebase',
-        submitFallbackUsed: true,
-        mongoErrorCode: String(mongoError?.code || 'unknown'),
-      });
-
-      clearDraft();
-      emit('finish');
-    }
+    clearDraft();
+    emit('finish');
   } catch (e) {
     console.error("Error submitting:", e);
     if (e?.code === 'permission-denied') {

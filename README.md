@@ -126,5 +126,20 @@ Ensure your `vite.config.js` has the correct `base` setting.
 - View submissions in the Firebase Console under **Firestore Database** -> `surveyResponses`.
 - You can export data from Firebase Console to JSON/CSV for analysis.
 
+## Quick Mock Data Test (Firebase)
+To quickly generate synthetic responses for manual QA and write them to Firebase, run:
+
+```bash
+python scripts/generate_mock_submission.py --count 1 --language zh --pair-count 8
+```
+
+Useful options:
+- `--count`: number of mock documents to create (default `1`)
+- `--language`: `zh` or `en` (default `zh`)
+- `--pair-count`: number of country pairs in each response (default `8`)
+- `--prefix`: UUID prefix (default `mock`)
+
+The command outputs generated UUIDs. You can search those IDs in Firestore `surveyResponses` for manual checks.
+
 ## Security
 - The security rules in `firestore.rules` ensure that public users can ONLY submit data and cannot read other people's submissions.
