@@ -69,6 +69,7 @@ def build_pairs(language: str, pair_count: int) -> list[str]:
 def build_mock_payload(uuid_value: str, language: str, pair_count: int) -> dict:
     now_iso = datetime.now(timezone.utc).isoformat()
     followup_options = FOLLOWUP_OPTIONS_ZH if language == "zh" else FOLLOWUP_OPTIONS_EN
+    joiner = " 和 " if language == "zh" else " and "
 
     answers = {
         "birth_date": random_birth_date(),
@@ -85,37 +86,42 @@ def build_mock_payload(uuid_value: str, language: str, pair_count: int) -> dict:
         else "This is a synthetic response for manual QA to verify database fields.",
     }
 
-    pair_question_map = {}
-    pair_responses = []
+    slider_ratings = []
 
     for idx, pair in enumerate(build_pairs(language, pair_count)):
         slider_id = f"slider_{idx}"
         followup_id = f"followup_{idx}"
         score = random.randint(0, 100)
-        followup_factors = random.sample(followup_options, k=random.randint(1, 3))
+        countries = [item.strip() for item in pair.split(joiner, 1) if item.strip()]
 
         answers[slider_id] = score
-        answers[followup_id] = followup_factors
 
-        pair_question_map[slider_id] = {"type": "slider", "pair": pair}
-        pair_question_map[followup_id] = {"type": "multiple_choice", "pair": pair}
+        slider_item = {
+            "questionId": slider_id,
+            "countries": countries,
+            "score": score,
+        }
 
-        pair_responses.append(
-            {
-                "pairQuestionId": slider_id,
-                "pair": pair,
-                "score": score,
-                "followupQuestionId": followup_id,
-                "followupFactors": followup_factors,
+        if random.random() < 0.1:
+            followup_factors = random.sample(followup_options, k=random.randint(1, 3))
+            answers[followup_id] = followup_factors
+            slider_item["followup"] = {
+                "questionId": followup_id,
+                "factors": followup_factors,
             }
-        )
+
+        slider_ratings.append(slider_item)
+
+    for key in list(answers.keys()):
+        if key.startswith("slider_"):
+            del answers[key]
+
+    answers["sliderRatings"] = slider_ratings
 
     return {
         "uuid": uuid_value,
         "ip": f"203.0.113.{random.randint(2, 200)}",
         "answers": answers,
-        "pairQuestionMap": pair_question_map,
-        "pairResponses": pair_responses,
         "userAgent": "mock-generator/1.0",
         "language": language,
         "duration": random.randint(360, 1200),
@@ -142,7 +148,7 @@ def create_mock_submissions(count: int, language: str, pair_count: int, prefix: 
             {
                 "uuid": uuid_value,
                 "language": language,
-                "pairCount": len(payload["pairResponses"]),
+                "pairCount": len(payload["answers"].get("sliderRatings", [])),
                 "duration": payload["duration"],
             }
         )

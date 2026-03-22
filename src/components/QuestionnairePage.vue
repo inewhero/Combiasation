@@ -220,18 +220,23 @@ const validateCurrent = () => {
 };
 
 const buildPairAnswerPayload = () => {
-  const pairQuestionMap = {};
-  const pairResponses = [];
-  const sliderRatings = {};
+  const parseCountriesFromPair = (pairText) => {
+    const raw = String(pairText || '').trim();
+    if (!raw) return [null, null];
 
-  questions.value.forEach((q) => {
-    if (q.type === 'slider' || q.type === 'multiple_choice') {
-      pairQuestionMap[q.id] = {
-        type: q.type,
-        pair: q.pair || null,
-      };
-    }
-  });
+    const separator = raw.includes(' 和 ')
+      ? ' 和 '
+      : raw.includes(' and ')
+        ? ' and '
+        : null;
+
+    if (!separator) return [raw, null];
+
+    const [country1, country2] = raw.split(separator).map((item) => item.trim());
+    return [country1 || null, country2 || null];
+  };
+
+  const sliderRatings = [];
 
   questions.value.forEach((q) => {
     if (q.type !== 'slider') return;
@@ -245,28 +250,41 @@ const buildPairAnswerPayload = () => {
     const followupFactors = Array.isArray(answers.value[followupId])
       ? answers.value[followupId]
       : [];
+    const countries = parseCountriesFromPair(q.pair).filter(Boolean);
 
-    pairResponses.push({
-      pairQuestionId: q.id,
-      pair: q.pair || null,
+    const sliderItem = {
+      questionId: q.id,
+      countries,
       score,
-      followupQuestionId: pairQuestionMap[followupId] ? followupId : null,
-      followupFactors,
-    });
-
-    sliderRatings[q.id] = {
-      pair: q.pair || null,
-      score,
-      followupQuestionId: pairQuestionMap[followupId] ? followupId : null,
-      followupFactors,
     };
+
+    if (followupFactors.length > 0) {
+      sliderItem.followup = {
+        questionId: followupId,
+        factors: followupFactors,
+      };
+    }
+
+    sliderRatings.push(sliderItem);
   });
 
   return {
-    pairQuestionMap,
-    pairResponses,
     sliderRatings,
   };
+};
+
+const buildSubmissionAnswers = () => {
+  const cleanedAnswers = { ...answers.value };
+  const { sliderRatings } = buildPairAnswerPayload();
+
+  Object.keys(cleanedAnswers).forEach((key) => {
+    if (key.startsWith('slider_')) {
+      delete cleanedAnswers[key];
+    }
+  });
+
+  cleanedAnswers.sliderRatings = sliderRatings;
+  return cleanedAnswers;
 };
 
 const nextQuestion = () => {
@@ -313,8 +331,7 @@ const submitSurvey = async () => {
     const baseSubmissionData = {
       uuid: props.uuid,
       ip,
-      answers: answers.value,
-      ...buildPairAnswerPayload(),
+      answers: buildSubmissionAnswers(),
       userAgent: navigator.userAgent,
       language: props.content.locale,
       duration: Math.round((Date.now() - startTime.value) / 1000),
