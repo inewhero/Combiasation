@@ -2,6 +2,11 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from '../firebaseConfig';
+import {
+  isSupabaseConfigured,
+  isSupabaseDuplicateError,
+  submitToSupabasePrimary,
+} from '../submit/supabaseSubmitClient';
 
 const props = defineProps({
   content: Object,
@@ -336,18 +341,41 @@ const submitSurvey = async () => {
       language: props.content.locale,
       duration: Math.round((Date.now() - startTime.value) / 1000),
       clientTimestamp: new Date().toISOString(),
-      submitPrimary: 'firebase',
-      submitBackend: 'firebase',
+      submitPrimary: 'supabase',
+      submitBackend: 'supabase',
       submitFallbackUsed: false,
     };
 
-    await setDoc(doc(db, "surveyResponses", props.uuid), {
-      ...baseSubmissionData,
-      timestamp: serverTimestamp(),
-    });
+    try {
+      await submitToSupabasePrimary(baseSubmissionData);
+      clearDraft();
+      emit('finish');
+      return;
+    } catch (supabaseError) {
+      if (isSupabaseDuplicateError(supabaseError)) {
+        clearDraft();
+        emit('finish', { duplicate: true });
+        return;
+      }
 
-    clearDraft();
-    emit('finish');
+      console.warn('Supabase primary submit failed, fallback to Firebase:', supabaseError);
+
+      const fallbackSubmissionData = {
+        ...baseSubmissionData,
+        submitBackend: 'firebase',
+        submitFallbackUsed: true,
+        supabaseConfigured: isSupabaseConfigured(),
+        supabaseErrorCode: String(supabaseError?.code || 'unknown'),
+      };
+
+      await setDoc(doc(db, "surveyResponses", props.uuid), {
+        ...fallbackSubmissionData,
+        timestamp: serverTimestamp(),
+      });
+
+      clearDraft();
+      emit('finish');
+    }
   } catch (e) {
     console.error("Error submitting:", e);
     if (e?.code === 'permission-denied') {
