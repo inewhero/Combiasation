@@ -43,3 +43,6 @@ firebase-debug.log
 # Doc
 .doc
 .docx
+
+# Validation outputs
+validation/*.xlsx
