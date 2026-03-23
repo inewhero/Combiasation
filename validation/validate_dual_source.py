@@ -53,6 +53,10 @@ def load_env_values():
         "SUPABASE_SERVICE_ROLE_KEY": os.getenv("SUPABASE_SERVICE_ROLE_KEY", merged.get("SUPABASE_SERVICE_ROLE_KEY", "")),
         "SUPABASE_SERVICE_KEY": os.getenv("SUPABASE_SERVICE_KEY", merged.get("SUPABASE_SERVICE_KEY", "")),
         "VITE_SUPABASE_ANON_KEY": os.getenv("VITE_SUPABASE_ANON_KEY", merged.get("VITE_SUPABASE_ANON_KEY", "")),
+        "VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY": os.getenv(
+            "VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY",
+            merged.get("VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY", ""),
+        ),
     })
     return merged
 
@@ -175,16 +179,20 @@ def fetch_firebase_data():
         firebase_admin.initialize_app(cred)
 
     db = firestore.client()
-    docs = db.collection("surveyResponses").stream()
+    try:
+        docs = db.collection("surveyResponses").stream()
 
-    data = {}
-    for doc_item in docs:
-        payload = doc_item.to_dict() or {}
-        data[normalize_uuid(payload.get("uuid") or doc_item.id)] = {
-            "source": "firebase",
-            "payload": payload,
-        }
-    return data
+        data = {}
+        for doc_item in docs:
+            payload = doc_item.to_dict() or {}
+            data[normalize_uuid(payload.get("uuid") or doc_item.id)] = {
+                "source": "firebase",
+                "payload": payload,
+            }
+        return data
+    except Exception as exc:
+        print(f"Warning: Firebase request failed ({exc}), skip Firebase source.")
+        return {}
 
 
 def fetch_supabase_data():
@@ -195,15 +203,28 @@ def fetch_supabase_data():
         str(env.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
         or str(env.get("SUPABASE_SERVICE_KEY") or "").strip()
         or str(env.get("VITE_SUPABASE_ANON_KEY") or "").strip()
+        or str(env.get("VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY") or "").strip()
+    )
+
+    using_service_key = bool(
+        str(env.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+        or str(env.get("SUPABASE_SERVICE_KEY") or "").strip()
     )
 
     if not supabase_url or not supabase_key:
         print("Warning: Supabase env not configured, skip Supabase source.")
         return {}
 
+    if not using_service_key:
+        print(
+            "Warning: Supabase read is using anon/publishable key. "
+            "With strict RLS this often returns empty results; "
+            "set SUPABASE_SERVICE_ROLE_KEY for validation reads."
+        )
+
     endpoint = (
         f"{supabase_url.rstrip('/')}/rest/v1/{urllib.parse.quote(supabase_table)}"
-        "?select=uuid,answers,duration,clientTimestamp,submitBackend,submitFallbackUsed"
+        "?select=*"
         "&limit=100000"
     )
 
@@ -221,7 +242,15 @@ def fetch_supabase_data():
         with urllib.request.urlopen(request, timeout=20) as response:
             data = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        print(f"Warning: Supabase HTTP error {exc.code}, skip Supabase source.")
+        detail = ""
+        try:
+            detail = exc.read().decode("utf-8", errors="ignore").strip()
+        except Exception:
+            detail = ""
+        if detail:
+            print(f"Warning: Supabase HTTP error {exc.code}, detail: {detail}")
+        else:
+            print(f"Warning: Supabase HTTP error {exc.code}, skip Supabase source.")
         return {}
     except Exception as exc:
         print(f"Warning: Supabase request failed ({exc}), skip Supabase source.")
@@ -242,10 +271,19 @@ def fetch_supabase_data():
 def extract_birth_gender_duration(record):
     payload = record.get("payload") or {}
     answers = payload.get("answers") or {}
+    if isinstance(answers, str):
+        try:
+            answers = json.loads(answers)
+        except Exception:
+            answers = {}
 
     birth = normalize_birth(answers.get("birth_date"))
     gender = normalize_gender(answers.get("gender"))
-    duration = parse_duration_seconds(payload.get("duration"))
+    duration = parse_duration_seconds(
+        payload.get("duration")
+        or payload.get("duration_secs")
+        or payload.get("durationSec")
+    )
 
     return birth, gender, duration
 
